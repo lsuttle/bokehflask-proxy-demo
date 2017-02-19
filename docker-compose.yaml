@@ -28,6 +28,3 @@ services:
       - bokehapp
     ports:
       - '80:80'
-#    volumes:
-#      - './:/host'
-#      - './flaskapps/static:/static'

@@ -2,7 +2,6 @@ FROM continuumio/miniconda
 
 MAINTAINER Garrett McGrath <gmcgrath815 at gmail.com>
 
-#RUN pip install -U discord.py redis validators
 
 RUN conda install -y bokeh numpy pandas
 

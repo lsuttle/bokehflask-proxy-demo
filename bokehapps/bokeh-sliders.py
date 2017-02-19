@@ -1,69 +1,75 @@
-''' Present an interactive function explorer with slider widgets.
-Scrub the sliders to change the properties of the ``sin`` curve, or
-type into the title text box to update the title of the plot.
-Use the ``bokeh serve`` command to run the example by executing:
-    bokeh serve sliders.py
-at your command prompt. Then navigate to the URL
-    http://localhost:5006/sliders
-in your browser.
-'''
-import numpy as np
-
 from bokeh.io import curdoc
-from bokeh.layouts import row, widgetbox
+
+import pandas as pd
+from bokeh.charts import Scatter, output_file, show
+from bokeh.models.widgets import Dropdown
+from bokeh.layouts import row, widgetbox, layout
+from bokeh.models import Select
 from bokeh.models import ColumnDataSource
-from bokeh.models.widgets import Slider, TextInput
+
 from bokeh.plotting import figure
-
-# Set up data
-N = 200
-x = np.linspace(0, 4*np.pi, N)
-y = np.sin(x)
-source = ColumnDataSource(data=dict(x=x, y=y))
+import sqlite3
 
 
-# Set up plot
-plot = figure(plot_height=400, plot_width=400, title="my sine wave",
-              tools="crosshair,pan,reset,save,wheel_zoom",
-              x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
+sql = """
+SELECT _projectid, year, total_price_including_optional_support,
+school_state, total_donations, perc_funded, primary_focus_subject
+FROM projects
+"""
 
-plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
+con = sqlite3.connect("/data/donorschoose.db")
+projects = pd.read_sql(sql, con)
+
+df = projects[(projects.year == 2015) & (projects.total_price_including_optional_support < 1000)]
+
+def make_plot(df):
+    p = figure(title="markers.py example", webgl=True)
+    p.scatter(x='total_price_including_optional_support',
+              y='perc_funded',
+              source = df,
+              size = 10)
+    return p
+
+def get_dataset(src, state, field):
+    l = [state, field]
+    fd = {}
+    if state is not 'All':
+        fd['school_state'] = [state]
+    if field is not 'All':
+        fd['primary_focus_subject'] = [field]
+    df = src.copy()
+    for key, values in fd.items():
+        df = df[df[key].isin(values)]
+    return ColumnDataSource(data=df)
+
+def update_plot(attrname, old, new):
+    state = stateselect.value
+    field = fieldselect.value
+    src = get_dataset(df, state, field)
+    source.data.update(src.data)
+
+states = ['All'] + sorted(list(df.school_state.unique()))
+fields = ['All'] + sorted(list(df.primary_focus_subject.unique()))
+
+# get data
+source = get_dataset(df, states[0], fields[0])
+
+# create figure
+p = make_plot(source)
+
+# create widgets
+stateselect = Select(title='Select State', value=states[0], options=states)
+fieldselect = Select(title='Select Focus Subject', value=fields[0], options=fields)
+
+w = widgetbox(stateselect, fieldselect)
+
+# filter settings
+stateselect.on_change('value', update_plot)
+fieldselect.on_change('value', update_plot)
 
 
-# Set up widgets
-text = TextInput(title="title", value='my sine wave')
-offset = Slider(title="offset", value=0.0, start=-5.0, end=5.0, step=0.1)
-amplitude = Slider(title="amplitude", value=1.0, start=-5.0, end=5.0)
-phase = Slider(title="phase", value=0.0, start=0.0, end=2*np.pi)
-freq = Slider(title="frequency", value=1.0, start=0.1, end=5.1)
+# layout
+l = layout([[w, p]])
 
-
-# Set up callbacks
-def update_title(attrname, old, new):
-    plot.title.text = text.value
-
-text.on_change('value', update_title)
-
-def update_data(attrname, old, new):
-
-    # Get the current slider values
-    a = amplitude.value
-    b = offset.value
-    w = phase.value
-    k = freq.value
-
-    # Generate the new curve
-    x = np.linspace(0, 4*np.pi, N)
-    y = a*np.sin(k*x + w) + b
-
-    source.data = dict(x=x, y=y)
-
-for w in [offset, amplitude, phase, freq]:
-    w.on_change('value', update_data)
-
-
-# Set up layouts and add to document
-inputs = widgetbox(text, offset, amplitude, phase, freq)
-
-curdoc().add_root(row(inputs, plot, width=800))
+curdoc().add_root(l)
 curdoc().title = "Sliders"

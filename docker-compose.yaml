@@ -19,6 +19,7 @@ services:
       - '5006:5006'
     volumes:
       - './bokehapps:/app'
+      - './data:/data'
   apache-proxy:
     build:
       context: .

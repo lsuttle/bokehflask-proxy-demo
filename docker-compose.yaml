@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  flaskapp:
+    build:
+      context: .
+      dockerfile: flaskapp.Dockerfile
+    volumes:
+      - './flaskapps:/app'
+    ports:
+      - '5000:5000'
+    links:
+      - bokehapp
+  bokehapp:
+    build:
+      context: .
+      dockerfile: bokehapp.Dockerfile
+    ports:
+      - '5006:5006'
+    volumes:
+      - './bokehapps:/app'
+  apache-proxy:
+    build:
+      context: .
+      dockerfile: apache.Dockerfile
+    links:
+      - flaskapp
+      - bokehapp
+    ports:
+      - '80:80'
+#    volumes:
+#      - './:/host'
+#      - './flaskapps/static:/static'

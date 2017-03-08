@@ -12,8 +12,9 @@ import sqlite3
 
 
 sql = """
-SELECT _projectid, school_state, teacher_teach_for_america, teacher_ny_teaching_fellow,
-grade_level, completed, year, poverty_level, primary_focus_subject, perc_funded,
+SELECT _projectid, school_state, teacher_teach_for_america,
+teacher_ny_teaching_fellow, grade_level, completed, year,
+poverty_level, primary_focus_subject, perc_funded,
 total_price_excluding_optional_support
 FROM projects
 where total_price_excluding_optional_support > 0
@@ -35,12 +36,12 @@ def make_plot(df):
               size = 10)
     return p
 
-def make_bar(df):
+def make_bar(df, x, y):
     p = figure(title="barchart example",
                x_range= df.data['bins'], webgl=True)
-    p.vbar(x=  df.data['bins'],
+    p.vbar(x= x,
            width=0.5, bottom=0,
-           top='completed', color="firebrick",
+           top=y, color="firebrick",
            source = df)
     return p
 
@@ -62,7 +63,9 @@ def get_dataset(src, state, field, sample):
 def get_group_dataset(src, state, field):
     df = filter_dataset(src, state, field)
     grouped = df[['bins', 'completed']].groupby('bins')
+
     groups = pd.DataFrame(grouped.completed.sum()/grouped.completed.count(), columns = ['bins', 'completed'])
+    groups['count'] = grouped.completed.count()
     return ColumnDataSource(data = groups)
 
 def filter_dataset(src, state, field):
@@ -87,7 +90,7 @@ def update_plot(attrname, old, new):
     #update models
     prob = get_prob(source.data['completed'])
     #update plot text
-    p.title.text = '{}% funding chance'.format(prob)
+    #p.title.text = '{}% funding chance'.format(prob)
     div.text = '{}% funding chance'.format(prob)
     div2.text = '{}'.format(state)
     div3.text = '{}'.format(field)
@@ -103,8 +106,9 @@ binned = get_group_dataset(df, states[0], fields[0])
 prob = get_prob(source.data['completed'])
 
 # create figures
-p = make_plot(source)
-q = make_bar(binned)
+#p = make_plot(source)
+perc = make_bar(binned, 'bins', 'completed')
+counts = make_bar(binned, 'bins', 'count')
 
 # create widgets
 stateselect = Select(title='Select State', value=states[0], options=states)
@@ -124,6 +128,6 @@ for widget in [stateselect, fieldselect]:
     widget.on_change('value', update_plot)
 
 # layout
-l = row(w, column(p, q))
+l = row(w, column(perc, counts))
 curdoc().add_root(l)
 curdoc().title = "Sliders"

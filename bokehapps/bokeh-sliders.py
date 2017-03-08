@@ -98,7 +98,7 @@ def update_plot(attrname, old, new):
 states = ['All'] + sorted(list(df.school_state.unique()))
 fields = ['All'] + sorted(list(df.primary_focus_subject.unique()))
 
-#get data
+# get data
 source = get_dataset(df, states[0], fields[0], 100)
 binned = get_group_dataset(df, states[0], fields[0])
 

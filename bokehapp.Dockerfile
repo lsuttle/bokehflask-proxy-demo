@@ -3,7 +3,7 @@ FROM continuumio/miniconda
 MAINTAINER Garrett McGrath <gmcgrath815 at gmail.com>
 
 
-RUN conda install -y bokeh numpy pandas
+RUN conda install -y bokeh numpy pandas sqlalchemy
 
 ## Scripts are in here.
 VOLUME ['/app']

@@ -15,6 +15,7 @@ def pulldata(state, focus):
     ftext = "primary_focus_subject=:focus"
     if state == focus:
         s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
+                where(text("total_price_excluding_optional_support > 0")).\
                 group_by(projects.c.bins)
     elif state == 'All':
         s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
@@ -32,7 +33,7 @@ def pulldata(state, focus):
     return [{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in result.fetchall()]
 
 
-def update_plot(attrname, old, new):
+def update_plot():
     state = stateselect.value
     field = fieldselect.value
     src = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(state, field)))
@@ -50,7 +51,7 @@ def make_bar(df, x, y):
            source = df)
     return p
 
-dbPath = "BokehTest/data/donorschoose.db"
+dbPath = "data/donorschoose.db"
 
 engine = create_engine('sqlite:///' + dbPath, echo=False)
 connection = engine.connect()
@@ -68,7 +69,7 @@ states = ['All'] + sorted([x[0] for x in slist])
 fields = ['All'] + sorted([x[0] for x in flist])
 
 # get data
-source = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata('All', fields[1])))
+source = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata('All', 'All')))
 
 # create figure
 #p = make_plot(source)
@@ -89,7 +90,7 @@ w = widgetbox(stateselect, fieldselect, updatebutton)#, div)
 
 # filter settings
 #stateselect.on_change('value', update_plot)
-#fieldselect.on_change('value', update_plot)
+updatebutton.on_click(update_plot)
 
 
 # layout

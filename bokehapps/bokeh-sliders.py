@@ -30,7 +30,10 @@ def pulldata(state, focus):
                 where(and_(text(stext), text(ftext))).\
                 group_by(projects.c.bins)
     result = connection.execute(s, state=state, focus=focus)
-    return [{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in result.fetchall()]
+    df = pd.DataFrame.from_dict([{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in result.fetchall()])
+    df['sort'] = pd.to_numeric(df.bin.str.extract('\(([^\)]+)\,'))
+    df = df.sort_values(by='sort')
+    return df[['bin', 'sum', 'count']]
 
 
 def update_plot():

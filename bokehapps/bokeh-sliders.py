@@ -46,11 +46,11 @@ def update_plot():
     #div.text = '{}% funding chance'.format(prob)
 
 def make_bar(df, x, y):
-    p = figure(title="barchart example",
+    p = figure(title="Number of Projects",
                x_range= df.data[x], webgl=True)
     p.vbar(x= x,
            width=0.5, bottom=0,
-           top=y, color="firebrick",
+           top=y, color="darkgreen",
            source = df)
     return p
 

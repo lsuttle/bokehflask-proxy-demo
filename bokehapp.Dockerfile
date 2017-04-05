@@ -2,8 +2,8 @@ FROM continuumio/miniconda
 
 MAINTAINER Garrett McGrath <gmcgrath815 at gmail.com>
 
-
-RUN conda install -y bokeh numpy pandas
+#RUN apt-get build-dep python-psycopg2
+RUN conda install -y bokeh numpy pandas psycopg2 sqlalchemy
 
 ## Scripts are in here.
 VOLUME ['/app']

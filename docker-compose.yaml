@@ -15,6 +15,8 @@ services:
     build:
       context: .
       dockerfile: bokehapp.Dockerfile
+    links:
+      - psql
     ports:
       - '5006:5006'
     volumes:
@@ -29,3 +31,25 @@ services:
       - bokehapp
     ports:
       - '80:80'
+  psql:
+    image: postgres:latest
+    environment:
+      - POSTGRES_PASSWORD=testpw
+      - POSTGRES_USER=testusr
+    ports:
+      - '1000:1000'
+    volumes:
+      - './data/psql:/var/lib/postgresql/data'
+      - './psql-initdb:/docker-entrypoint-initdb.d'
+  jupyter:
+    build:
+        context: .
+        dockerfile: scratch.Dockerfile
+    #image: continuumio/anaconda3
+    #volumes:
+    #  - './data/notebooks:/opts/notebooks'
+    ports:
+      - '8888:8888'
+    links:
+      - psql
+    #command: /bin/bash -c "/opt/conda/bin/conda install jupyter -y --quiet && mkdir /opt/notebooks && /opt/conda/bin/jupyter notebook --notebook-dir=/opt/notebooks --ip='*' --port=8888 --no-browser"

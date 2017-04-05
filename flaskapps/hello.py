@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    script=autoload_server(model=None,app_path="/bokeh-sliders",url="http://10.140.0.46/bokehapp")
+    script=autoload_server(model=None,app_path="/bokeh-sliders",url="http://10.140.0.48/bokehapp")
     #return render_template('hello.html',bokS=script)
     return render_template('index.html',bokS=script)
 

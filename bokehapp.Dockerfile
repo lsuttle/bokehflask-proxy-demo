@@ -3,7 +3,7 @@ FROM continuumio/miniconda
 MAINTAINER Garrett McGrath <gmcgrath815 at gmail.com>
 
 #RUN apt-get build-dep python-psycopg2
-RUN conda install -y bokeh numpy pandas psycopg2 sqlalchemy
+RUN conda install -y bokeh numpy pandas psycopg2 sqlalchemy scikit-learn
 
 ## Scripts are in here.
 VOLUME ['/app']

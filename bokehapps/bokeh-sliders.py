@@ -12,7 +12,12 @@ from sqlalchemy import and_, create_engine, func, case, Table, Column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import cPickle as pickle
+
+from sklearn.ensemble import RandomForestClassifier
+
 import data_funcs
+import models
 
 def mapFilters():
     return {'school_state': stateselect.value,
@@ -30,8 +35,11 @@ def update_plot():
     f = mapFilters()
     src = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(f, bins)))
     source.data.update(src.data)
+    # prepare vector for prediction
+    model_input_vector = models.make_vector(mapPredictors(f))
+    prob = rf.predict_proba(model_input_vector)[:,1]
     #prob = get_prob(source.data['completed'])
-    #div.text = '{}% funding chance'.format(prob)
+    div.text = '{}% funding chance'.format(round(prob[0], 3)*100)
 
 def make_bar(df, x, y):
     p = figure(title="barchart example",
@@ -59,6 +67,25 @@ def pulldata(filters, bins):
 
     return [{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in q.group_by(bins).all()]
 
+def mapPredictors(f):
+    return [
+    f['n_has_givepage'], # 0 for false, 1 for true
+    1, # 0 for false, 1 for true
+    1, # 0 for false, 1 for true
+    0, #f['eligible_double_your_impact_match'], # 0 for false, 1 for true
+    0, #f['eligible_almost_home_match'], # 0 for false, 1 for true
+    1, # an integer value
+    30, # an integer value
+    30, # an integer value
+    300, #f['price'], # a float value
+    0.5, # a float value
+    'May',#date_posted,\ # a string ie. 'March'
+    f['school_state'], # a 2 letter string ie. 'CA'
+    f['primary_focus_subject'], # a string ie. 'Character Education'
+    f['resource_type'], # a string ie. 'Books'
+    f['poverty_level'], # a string ie. 'high poverty'
+    f['grade_level'] # a string ie. 'Grades 3-5'
+    ]
 dbPath = "BokehTest/data/donorschoose.db"
 
 engine = create_engine('postgresql://testusr:testpw@psql')
@@ -118,11 +145,17 @@ poverty_level =  Select(title='Poverty Level',value = poverty[0],options=poverty
 
 updatebutton = Button(label="Update Figure", button_type="success")
 
-#div = Div(text='{}% funding chance'.format(prob), width=200, height=100)
 
 # get data
 f = mapFilters()
 source = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(f, bins)))
+
+
+# prepare vector for prediction
+rf = pickle.load(open("./data/dc_rf_model.p","rb" ))
+model_input_vector = models.make_vector(mapPredictors(f))
+prob = rf.predict_proba(model_input_vector)[:,1]
+div = Div(text='{}% funding chance'.format(round(prob[0], 3)*100), width=200, height=100)
 
 # create figure
 counts = make_bar(source, 'bin', 'count')
@@ -133,19 +166,13 @@ counts = make_bar(source, 'bin', 'count')
 w = widgetbox(stateselect, fieldselect, resource_type,
               giving_page, giving_page_size, month,
               grade_level, dym, ahm,
-              updatebutton)#, div)
+              updatebutton, div)
 
 # filter settings
 updatebutton.on_click(update_plot)
-#stateselect.on_change('value', update_plot)
-#fieldselect.on_change('value', update_plot)
-
 
 # layout
 l = layout([[w, counts]])
-
-#show
-#show(l)
 
 curdoc().add_root(l)
 curdoc().title = "Sliders"

@@ -18,6 +18,12 @@ def mapTF(string):
         'No':  'f'
         }[string]
 
+def mapNum(string):
+    return {
+        'Yes': 1,
+        'No':  0
+        }[string]
+
 def mapBinary(string):
     return {
         'Yes': True,

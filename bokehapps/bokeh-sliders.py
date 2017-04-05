@@ -19,13 +19,20 @@ from sklearn.ensemble import RandomForestClassifier
 import data_funcs
 import models
 
+def get_cat_filter(column, session, inc_all = True):
+    l = session.query(Projects).with_entities(getattr(Projects, column)).distinct().all()
+    if inc_all:
+        return ['All'] + sorted([x[0] for x in l if x[0] is not None])
+    return sorted([x[0] for x in l if x[0] is not None])
+
+
 def mapFilters():
     return {'school_state': stateselect.value,
      'primary_focus_subject': fieldselect.value,
     'resource_type': resource_type.value,
     'n_has_givepage': data_funcs.mapBinary(giving_page.value),
     #'c': giving_page_size.value,
-    #'date_posted': monthToNum(month.value),
+    'date_posted': month.value,
     'grade_level': grade_level.value,
     'eligible_double_your_impact_match': data_funcs.mapTF(dym.value),
     'eligible_almost_home_match': data_funcs.mapTF(ahm.value),
@@ -33,39 +40,28 @@ def mapFilters():
 
 def update_plot():
     f = mapFilters()
-    src = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(f, bins)))
-    source.data.update(src.data)
-    # prepare vector for prediction
     model_input_vector = models.make_vector(mapPredictors(f))
+    output = models.make_changes(model_input_vector, rf)
+
+    src = ColumnDataSource(data=output.head(10))
+
+    source.data.update(src.data)
+
+    # get data
     prob = rf.predict_proba(model_input_vector)[:,1]
-    #prob = get_prob(source.data['completed'])
-    div.text = '{}% funding chance'.format(round(prob[0], 3)*100)
+    div.text = '{}% funding chance'.format(output)
+    #counts = make_bar(source, 'Recommendation', 'Score')
+
 
 def make_bar(df, x, y):
     p = figure(title="barchart example",
                x_range= df.data[x], webgl=True)
     p.vbar(x= x,
            width=0.5, bottom=0,
-           top=y, color="firebrick",
+           top=y, color="darkgreen",
            source = df)
     return p
 
-def get_cat_filter(column, session, inc_all = True):
-    l = session.query(Projects).with_entities(getattr(Projects, column)).distinct().all()
-    if inc_all:
-        return ['All'] + sorted([x[0] for x in l if x[0] is not None])
-    return sorted([x[0] for x in l if x[0] is not None])
-
-def pulldata(filters, bins):
-    completed = case([(Projects.funding_status == 'completed', 1)],else_=0).label('completed')
-
-    q = session.query(Projects).with_entities(bins, func.sum(completed), func.count(completed))
-
-    for key in filters:
-        if filters[key] is not 'All':
-            q = q.filter(getattr(Projects, key) == filters[key])
-
-    return [{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in q.group_by(bins).all()]
 
 def mapPredictors(f):
     return [
@@ -86,6 +82,7 @@ def mapPredictors(f):
     f['poverty_level'], # a string ie. 'high poverty'
     f['grade_level'] # a string ie. 'Grades 3-5'
     ]
+
 dbPath = "BokehTest/data/donorschoose.db"
 
 engine = create_engine('postgresql://testusr:testpw@psql')
@@ -102,22 +99,6 @@ class Projects(Base):
 Session = sessionmaker(bind=engine)
 session = Session()
 
-
-b = [0, 100, 250, 500, 1000, 5000]
-ranges = [(b[i-1], b[i]) for i in range(1,len(b))]
-
-bins = case(
-        [
-            (and_(Projects.price > ranges[0][0], Projects.price <= ranges[0][1]), str(ranges[0])),
-            (and_(Projects.price > ranges[1][0], Projects.price <= ranges[1][1]), str(ranges[1])),
-            (and_(Projects.price > ranges[2][0], Projects.price <= ranges[2][1]), str(ranges[2])),
-            (and_(Projects.price > ranges[3][0], Projects.price <= ranges[3][1]), str(ranges[3])),
-            (and_(Projects.price > ranges[4][0], Projects.price <= ranges[4][1]), str(ranges[4])),
-
-        ],
-    else_='>'+str(b[-1])).label('bins')
-
-
 #lists for filters
 states = get_cat_filter('school_state', session)
 fields = get_cat_filter('primary_focus_subject', session)
@@ -129,7 +110,6 @@ choice = ['No', 'Yes']
 grades = ['Grades PreK-2', 'Grades 3-5', 'Grades 6-8', 'Grades 9-12']
 poverty = get_cat_filter('poverty_level', session)
 resource = get_cat_filter('resource_type', session)
-
 
 # create widgets
 stateselect = Select(title='Select State', value=states[0], options=states)
@@ -145,23 +125,20 @@ poverty_level =  Select(title='Poverty Level',value = poverty[0],options=poverty
 
 updatebutton = Button(label="Update Figure", button_type="success")
 
-
-# get data
-f = mapFilters()
-source = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(f, bins)))
-
-
 # prepare vector for prediction
+f = mapFilters()
 rf = pickle.load(open("./data/dc_rf_model.p","rb" ))
 model_input_vector = models.make_vector(mapPredictors(f))
+output = models.make_changes(model_input_vector, rf)
+
+# get data
+source = ColumnDataSource(data=output.head(10))
 prob = rf.predict_proba(model_input_vector)[:,1]
-div = Div(text='{}% funding chance'.format(round(prob[0], 3)*100), width=200, height=100)
+
+div = Div(text='{}% funding chance'.format(output), width=200, height=100)
 
 # create figure
-counts = make_bar(source, 'bin', 'count')
-
-# get probability of success
-#prob = get_prob(source.data['completed'])
+counts = make_bar(source, 'Rec_Number', 'Score')
 
 w = widgetbox(stateselect, fieldselect, resource_type,
               giving_page, giving_page_size, month,

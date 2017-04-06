@@ -8,7 +8,6 @@ from bokeh.models import Select
 from bokeh.models import ColumnDataSource
 
 from bokeh.plotting import figure
-<<<<<<< HEAD
 from sqlalchemy import and_, create_engine, func, case, Table, Column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -55,44 +54,6 @@ def update_plot():
 
     prob = rf.predict_proba(model_input_vector)[:,1] # probability of current model, if needed
 
-=======
-from sqlalchemy import or_, and_, select, create_engine, MetaData, text, func
-
-def pulldata(state, focus):
-    stext = "school_state=:state"
-    ftext = "primary_focus_subject=:focus"
-    if state == focus:
-        s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
-                where(text("total_price_excluding_optional_support > 0")).\
-                group_by(projects.c.bins)
-    elif state == 'All':
-        s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
-                where(text(ftext)).\
-                group_by(projects.c.bins)
-    elif focus == 'All':
-        s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
-                where(text(stext)).\
-                group_by(projects.c.bins)
-    else:
-        s = select([projects.c.bins, func.sum(projects.c.completed), func.count(projects.c.completed)]).\
-                where(and_(text(stext), text(ftext))).\
-                group_by(projects.c.bins)
-    result = connection.execute(s, state=state, focus=focus)
-    df = pd.DataFrame.from_dict([{'bin': x[0], 'sum':x[1], 'count':x[1]} for x in result.fetchall()])
-    df['sort'] = pd.to_numeric(df.bin.str.extract('\(([^\)]+)\,'))
-    df = df.sort_values(by='sort')
-    return df[['bin', 'sum', 'count']]
-
-
-def update_plot():
-    state = stateselect.value
-    field = fieldselect.value
-    src = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata(state, field)))
-    #src = get_dataset(df, state, field, 1000)
-    source.data.update(src.data)
-    #prob = get_prob(source.data['completed'])
-    #div.text = '{}% funding chance'.format(prob)
->>>>>>> 39405f464a21d68b13d140c765496fe9c817b55f
 
 def make_bar(df, x, y):
     """ Creates a bar chart in bokeh"""
@@ -104,7 +65,6 @@ def make_bar(df, x, y):
            source = df)
     return p
 
-<<<<<<< HEAD
 ##### TO DO: Add the rest of the filters and hook them in
 def mapPredictors(f):
     """ Gets values from filter dictionary into list for
@@ -163,34 +123,6 @@ months = ['January','February', 'March', 'April', 'May',
             'November','December']
 choice = ['No', 'Yes']
 grades = ['Grades PreK-2', 'Grades 3-5', 'Grades 6-8', 'Grades 9-12']
-=======
-dbPath = "data/donorschoose.db"
-
-engine = create_engine('sqlite:///' + dbPath, echo=False)
-connection = engine.connect()
-
-meta = MetaData()
-meta.reflect(bind=engine)
-
-projects = meta.tables['projectsbins']
-
-slist = connection.execute(select([projects.c.school_state]).distinct()).fetchall()
-flist = connection.execute(select([projects.c.primary_focus_subject]).distinct()).fetchall()
-
-#slist = sorted([x[0] for x in result])
-states = ['All'] + sorted([x[0] for x in slist])
-fields = ['All'] + sorted([x[0] for x in flist])
-
-# get data
-source = ColumnDataSource(pd.DataFrame.from_dict(data=pulldata('All', 'All')))
-
-# create figure
-#p = make_plot(source)
-counts = make_bar(source, 'bin', 'count')
-
-# get probability of success
-#prob = get_prob(source.data['completed'])
->>>>>>> 39405f464a21d68b13d140c765496fe9c817b55f
 
 # create widgets
 #### TO DO: ADD VALUE WIDGETS FOR TEACHERS, STUDENTS, PRICE
@@ -198,7 +130,6 @@ counts = make_bar(source, 'bin', 'count')
 # select widgets
 stateselect = Select(title='Select State', value=states[1], options=states)
 fieldselect = Select(title='Select Focus Subject', value=fields[0], options=fields)
-<<<<<<< HEAD
 resource_type = Select(title = 'Resource Type', value = resource[0], options=resource)
 giving_page = Select(title='Is your project be on a giving page?',value = choice[0],options=choice)
 giving_page_size = Select(title='Is Giving Page Size > 100 Projects?',value = choice[0],options=choice)
@@ -240,16 +171,10 @@ w = widgetbox(stateselect, fieldselect, resource_type,
               giving_page, giving_page_size, month,
               grade_level, dym, ahm,
               updatebutton)
-=======
-updatebutton = Button(label="Update Figure", button_type="success")
-
-#div = Div(text='{}% funding chance'.format(prob), width=200, height=100)
->>>>>>> 39405f464a21d68b13d140c765496fe9c817b55f
 
 # layout
 l = layout([[w, counts]])
 
-<<<<<<< HEAD
 ###########
 ### Interactivity
 ##########
@@ -262,20 +187,5 @@ updatebutton.on_click(update_plot)
 ###########
 
 # add to file and show
-=======
-w = widgetbox(stateselect, fieldselect, updatebutton)#, div)
-
-# filter settings
-#stateselect.on_change('value', update_plot)
-updatebutton.on_click(update_plot)
-
-
-# layout
-l = layout([[w, counts]])
-
-#show
-#show(l)
-
->>>>>>> 39405f464a21d68b13d140c765496fe9c817b55f
 curdoc().add_root(l)
 curdoc().title = "Predictive Dashboard"
